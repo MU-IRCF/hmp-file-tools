@@ -75,8 +75,8 @@ sub input2 {
     return q:to/END/;
         rs#	alleles	chrom	pos	strand	assembly#	center	protLSID	assayLSID	panelLSID	QCcode	TaxaD	TaxaE	TaxaF
         S1_130	blah	1	130	blah	blah	blah	blah	blah	blah	blah	G	T	N
-        S1_30	blah	1	30	blah	blah	blah	blah	blah	blah	blah	C	C	C
-        S1_110	blah	1	110	blah	blah	blah	blah	blah	blah	blah	G	T	T
+        S1_30	blah	1	30	blah	blah	blah	blah	blah	blah	blah	C	C	N
+        S1_110	blah	1	110	blah	blah	blah	blah	blah	blah	blah	G	T	N
         S1_150	blah	1	150	blah	blah	blah	blah	blah	blah	blah	A	A	A
         END
 }
@@ -93,8 +93,8 @@ sub expected1 {
 sub expected2 {
     return q:to/END/;
         rs#	alleles	chrom	pos	strand	assembly#	center	protLSID	assayLSID	panelLSID	QCcode	TaxaD	TaxaE	TaxaF
-        S1_30	blah	1	30	blah	blah	blah	blah	blah	blah	blah	C	C	C
-        S1_110	blah	1	110	blah	blah	blah	blah	blah	blah	blah	G	T	T
+        S1_30	blah	1	30	blah	blah	blah	blah	blah	blah	blah	C	C	N
+        S1_110	blah	1	110	blah	blah	blah	blah	blah	blah	blah	G	T	N
         S1_130	blah	1	130	blah	blah	blah	blah	blah	blah	blah	G	T	N
         END
 }
