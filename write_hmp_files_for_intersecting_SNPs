@@ -1,0 +1,95 @@
+#!/bin/env perl
+# Create copies of two hapmap files that contain only the SNPs in common
+use 5.010;
+use strict;
+use warnings;
+use autodie;
+
+use List::MoreUtils qw( any );
+
+use IO::Uncompress::Gunzip qw( $GunzipError);
+use IO::Compress::Gzip qw( $GzipError );
+
+my $hapmap_A = shift;
+my $hapmap_B = shift;
+
+my @names_A = get_names_for($hapmap_A);
+my @names_B = get_names_for($hapmap_B);
+
+my %intersection;
+for my $name_A (@names_A)
+{
+    if (any { $_ eq $name_A} @names_B){
+        $intersection{$name_A} = 1;
+    }
+}
+
+for my $hapmap ($hapmap_A, $hapmap_B) {
+    my $fh_in  = open_possibly_gzipped_file($hapmap);
+    my $fh_out = open_writable_file("$hapmap.intersecting.hmp.txt"); 
+
+    while (my $line = readline $fh_in ) {
+
+        # Write line if it's a comment
+        if ($line =~ m{ \# }xms ) {
+            print {$fh_out} $line;
+
+            # Finished with this line, go the next
+            next;
+        }
+
+        my ($name) = (split /\t/, $line)[0];
+
+        if (exists $intersection{$name} ) {
+            print {$fh_out} $line;
+        }
+    }
+}
+
+sub get_names_for
+{
+    my $file_name = shift;
+
+    my $fh = open_possibly_gzipped_file($file_name);
+
+    my @names;
+    while (my $line = readline $fh)
+    {
+        my ($name) = split /\t/, $line;
+
+        if ($name !~ /\A \# | rs \# /xms)
+        {
+            push @names, $name; 
+        }
+    }
+
+    close $fh;
+    return @names;
+}
+
+# Open either gzipped compressed or normal file (determined by presence/absence of '.gz' file extension)
+sub open_possibly_gzipped_file {
+    my $filename = shift;
+
+    # Return decompressing filehandle if applicable
+    return IO::Uncompress::Gunzip->new($filename, MultiStream => 1) if $filename =~ /\.gz$/;
+
+    # Return normal "reading" filehandle
+    open(my $fh, '<', $filename);
+    return $fh;
+}
+
+sub open_writable_file {
+    my $filename = shift;
+
+    if ($filename =~ /.gz $/xms ) {
+        my $fh = IO::Compress::Gzip->new($filename)
+            or die "IO::Compress::Gzip failed: $GzipError\n";
+        return $fh;
+    }
+
+    # Return normal "writable" filehandle
+    open(my $fh, '>', $filename);
+    return $fh;
+}
+
