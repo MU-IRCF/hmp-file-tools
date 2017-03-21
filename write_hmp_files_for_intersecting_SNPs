@@ -13,58 +13,50 @@ use IO::Compress::Gzip qw( $GzipError );
 my $hapmap_A = shift;
 my $hapmap_B = shift;
 
-my @names_A = get_names_for($hapmap_A);
-my @names_B = get_names_for($hapmap_B);
+my $fh_outA = open_writable_file("$hapmap_A.intersecting.hmp.txt");
+my $fh_outB = open_writable_file("$hapmap_B.intersecting.hmp.txt");
+
+my ($header_A, @SNPinfo_A) = get_SNPinfo_for($hapmap_A);
+my ($header_B, @SNPinfo_B) = get_SNPinfo_for($hapmap_B);
+
+print {$fh_outA} $header_A;
+print {$fh_outB} $header_B;
+
+my @intersection_A;
+my @intersection_B;
 
 my %intersection;
-for my $name_A (@names_A)
-{
-    if (any { $_ eq $name_A} @names_B){
-        $intersection{$name_A} = 1;
+for my $info_A (@SNPinfo_A) {
+    my $info_B;
+    if (any { $info_A->[0] eq $_->[0] ? $info_B = $_ : 0 } @SNPinfo_B){
+        say {$fh_outA} join("\t", @{ $info_A } );
+        say {$fh_outB} join("\t", @{ $info_B } );
     }
 }
 
-for my $hapmap ($hapmap_A, $hapmap_B) {
-    my $fh_in  = open_possibly_gzipped_file($hapmap);
-    my $fh_out = open_writable_file("$hapmap.intersecting.hmp.txt"); 
-
-    while (my $line = readline $fh_in ) {
-
-        # Write line if it's a comment
-        if ($line =~ m{ \# }xms ) {
-            print {$fh_out} $line;
-
-            # Finished with this line, go the next
-            next;
-        }
-
-        my ($name) = (split /\t/, $line)[0];
-
-        if (exists $intersection{$name} ) {
-            print {$fh_out} $line;
-        }
-    }
-}
-
-sub get_names_for
-{
+sub get_SNPinfo_for {
     my $file_name = shift;
 
     my $fh = open_possibly_gzipped_file($file_name);
 
-    my @names;
-    while (my $line = readline $fh)
-    {
-        my ($name) = split /\t/, $line;
+    my $first_line = readline $fh;
+
+    my @SNPinfo;
+    while (my $line = readline $fh) {
+        chomp $line;
+        my ($name, $alleles, $chr, $pos, @rest) = split /\t/, $line;
 
         if ($name !~ /\A \# | rs \# /xms)
         {
-            push @names, $name; 
+            push @SNPinfo, [$name, $alleles, $chr, $pos, @rest];
         }
     }
 
+    # Sort by chrom, then by position
+    @SNPinfo = sort {$a->[2] <=> $b->[2] || $a->[3] <=> $b->[3] } @SNPinfo;
+
     close $fh;
-    return @names;
+    return($first_line, @SNPinfo);
 }
 
 # Open either gzipped compressed or normal file (determined by presence/absence of '.gz' file extension)
@@ -92,4 +84,3 @@ sub open_writable_file {
     open(my $fh, '>', $filename);
     return $fh;
 }
-
